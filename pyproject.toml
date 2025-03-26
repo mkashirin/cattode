@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+packages = ["zeptogpt"]
+include = ["data"]
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu126" }
+torchvision = { index = "pytorch-cu126" }
+
+[project]
+name = "zeptogpt"
+version = "0.1.0"
+description = "Inspired by Andrej Karpathy's nanoGPT lecture."
+readme = "README.md"
+authors = [
+    { name = "Michael Kashirin", email = "hotmail.mkashirin@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.2.4",
+    "torch>=2.6.0",
+]
+
+[dependency-groups]
+nvidia = [
+    "nvidia-cublas-cu12==12.6.4.1",
+    "nvidia-cuda-cupti-cu12==12.6.80",
+    "nvidia-cuda-nvrtc-cu12==12.6.77",
+    "nvidia-cuda-runtime-cu12==12.6.77",
+    "nvidia-cudnn-cu12==9.5.1.17",
+    "nvidia-cufft-cu12==11.3.0.4",
+    "nvidia-curand-cu12==10.3.7.77",
+    "nvidia-cusolver-cu12==11.7.1.2",
+    "nvidia-cusparse-cu12==12.5.4.2",
+    "nvidia-nccl-cu12==2.21.5",
+    "nvidia-nvjitlink-cu12==12.6.85",
+    "nvidia-nvtx-cu12==12.6.77",
+    "triton==3.2.0",
+]
+dev = [
+    "pyright>=1.1.393",
+    "ruff>=0.8.4",
+]
