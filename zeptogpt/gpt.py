@@ -1,26 +1,20 @@
 from dataclasses import dataclass
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch as th
 import torch.nn as nn
 from torch.nn import functional as F
-from torch.nn.modules import Dropout
 
-
-DataSplit = Literal["train", "valid"]
-DEVICE = "cuda" if th.cuda.is_available() else "cpu"
-
-th.manual_seed(2025)
+from .base import *
 
 
 @dataclass
 class GPTModelConfig:
-    file_path: str = "data/tsinput.txt"
     batch_size: int = 64
     block_size: int = 256
     max_iter: int = 5000
     eval_interval: int = 500
-    lr: float = 3e-4
+    lr: float = 3e-2
     eval_iter: int = 200
     n_embed: int = 384
     n_heads: int = 6
@@ -51,7 +45,7 @@ class Head(nn.Module):
         keys: th.Tensor = self.keys(x)
         queries: th.Tensor = self.queries(x)
         out: th.Tensor = (
-            queries @ keys.transpose(-2, 1) * keys.shape[-1] ** -0.5
+            queries @ keys.transpose(-2, -1) * keys.shape[-1] ** -0.5
         )
         # fmt: off
         out = out.masked_fill(
@@ -76,11 +70,13 @@ class MultiHeadAttention(nn.Module):
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.heads = nn.ModuleList([Head(n_embed, head_size, block_size, dr)])
-        self.proj = nn.Linear(head_size * n_heads, n_embed)
+        self.heads = nn.ModuleList(
+            [Head(n_embed, head_size, block_size, dr) for _ in range(n_heads)]
+        )
+        self.proj = nn.Linear(n_heads * head_size, n_embed)
         self.dropout = nn.Dropout(dr)
 
-    def forward(self, x) -> th.Tensor:
+    def forward(self, x: th.Tensor) -> th.Tensor:
         out = th.cat([head(x) for head in self.heads], dim=-1)
         return self.dropout(self.proj(out))
 
@@ -123,52 +119,35 @@ class Block(nn.Module):
         return x + self.ff(self.ln1(x))
 
 
-class GPTLanguageModel(nn.Module):
+class GPTLanguageModel(BaseLanguageModel):
     def __init__(self, config: GPTModelConfig, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.config_ = config
-
-        with open(self.config_.file_path, "r", encoding="utf-8") as file:
-            text = file.read()
-
-        self._chars = sorted(list(set(text)))
-        self._vocab_size = len(self._chars)
-        self._str2int_mapping = {
-            char: index for index, char in enumerate(self._chars)
-        }
-        self._int2str_mapping = {
-            index: char for index, char in enumerate(self._chars)
-        }
-        self._data = th.tensor(self._encode(text), dtype=th.long)
-
-        self.train_size = int(0.9 * len(self._data))
-        self.train_data = self._data[: self.train_size]
-        self.valid_data = self._data[self.train_size :]
+        setattr(self, "config", config)
 
         self._token_embedding_table = nn.Embedding(
-            self._vocab_size, self.config_.n_embed
+            self._vocab_size, config.n_embed
         )
         self._position_embedding_table = nn.Embedding(
-            self.config_.block_size, self.config_.n_embed
+            config.block_size, config.n_embed
         )
         self.blocks = nn.Sequential(
             *[
                 Block(
-                    self.config_.n_embed,
-                    self.config_.n_heads,
-                    self.config_.block_size,
-                    self.config_.dr,
+                    config.n_heads,
+                    config.n_embed,
+                    config.block_size,
+                    config.dr,
                 )
-                for _ in range(self.config_.n_layers)
+                for _ in range(config.n_layers)
             ]
         )
-        self.fln = nn.LayerNorm(self.config_.n_embed)
-        self.lmh = nn.Linear(self.config_.n_embed, self._vocab_size)
+        self.fln = nn.LayerNorm(config.n_embed)
+        self.lmh = nn.Linear(config.n_embed, self._vocab_size)
 
         self.apply(self._init_weights)
 
     def forward(
-        self, index: th.Tensor, targets: Optional[th.Tensor]
+        self, index: th.Tensor, targets: Optional[th.Tensor] = None
     ) -> Tuple[th.Tensor, th.Tensor]:
         bdim, tdim = index.shape
 
@@ -176,7 +155,7 @@ class GPTLanguageModel(nn.Module):
         pos_embed = self._position_embedding_table(
             th.arange(tdim, device=DEVICE)
         )
-        x = token_embed + pos_embed
+        x: th.Tensor = token_embed + pos_embed
         x = self.blocks(x)
         x = self.fln(x)
         logits = self.lmh(x)
@@ -192,36 +171,16 @@ class GPTLanguageModel(nn.Module):
         return (logits, loss)  # pyright: ignore
 
     def generate(self, index: th.Tensor, max_new_tokens: int) -> th.Tensor:
+        config = getattr(self, "config")
         for _ in range(max_new_tokens):
-            index_cond = index[:, -self.config_.block_size :]
+            index_cond = index[:, -config.block_size :]
             logits, _ = self(index_cond)
             logits, _ = self(index)
             logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
             next_i = th.multinomial(probs, num_samples=1)
-            index = th.cat([index, next_i], dim=1)  # pyright: ignore
+            index = th.cat([index, next_i], dim=1)
         return index
-
-    def decode(self, input: List[int]) -> str:
-        mapped = (self._int2str_mapping[index] for index in input)
-        return "".join(mapped)
-
-    def batch(self, split: DataSplit) -> Tuple[th.Tensor, th.Tensor]:
-        data = None
-        if split == "train":
-            data = self.train_data
-        else:
-            data = self.valid_data
-        ixs = (self.config_.batch_size,)
-        index_x = th.randint(len(data) - self.config_.block_size, ixs)
-        x = th.stack(
-            [data[ix : ix + self.config_.block_size] for ix in index_x]
-        )
-        y = th.stack(
-            [data[ix + 1 : ix + self.config_.block_size + 1] for ix in index_x]
-        )
-        x, y = (x.to(DEVICE), y.to(DEVICE))
-        return (x, y)
 
     def _init_weights(self, module: nn.Module) -> None:
         if isinstance(module, nn.Linear):
@@ -230,47 +189,3 @@ class GPTLanguageModel(nn.Module):
                 nn.init.zeros_(module.bias)
         elif isinstance(module, nn.Embedding):
             nn.init.normal_(module.weight, mean=0.0, std=0.02)
-
-    def _encode(self, input: str) -> List[int]:
-        return [self._str2int_mapping[char] for char in input]
-
-
-@th.no_grad()
-def estimate_loss(
-    model: GPTLanguageModel, eval_iter: int
-) -> Dict[DataSplit, th.Tensor]:
-    output: Dict[DataSplit, th.Tensor] = dict()
-    model.eval()
-    for split in ("train", "valid"):
-        losses = th.zeros(model.config_.eval_iter)
-        for ei in range(eval_iter):
-            x, y = model.batch(split)
-            _, loss = model(x, y)
-            losses[ei] = loss.item()
-        output[split] = losses.mean()
-    model.train()
-    return output
-
-
-if __name__ == "__main__":
-    gmc = GPTModelConfig()
-    gpt = GPTLanguageModel(gmc).to(DEVICE)
-    optimizer = th.optim.AdamW(gpt.parameters(), lr=gmc.lr)
-
-    for it in range(gmc.max_iter):
-        if it % gmc.eval_interval == 0:
-            losses = estimate_loss(gpt, gmc.eval_iter)
-            print(f"""Trainer (step {it}):
-    train loss: {losses["train"]}, valid loss: {losses["valid"]}""")
-
-            x_batch, y_batch = gpt.batch("train")
-            logits, loss = gpt(x_batch, y_batch)
-            optimizer.zero_grad(set_to_none=True)
-            loss.backward()
-            optimizer.step()
-
-    context = th.zeros([1, 1], dtype=th.long, device=DEVICE)
-    decoded = gpt.decode(
-        gpt.generate(context, max_new_tokens=500)[0].tolist()  # pyright: ignore
-    )
-    print(decoded)

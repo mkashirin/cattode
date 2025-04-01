@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build]
 packages = ["zeptogpt"]
-include = ["data"]
+include = ["examples"]
 
 [[tool.uv.index]]
 name = "pytorch-cu126"
