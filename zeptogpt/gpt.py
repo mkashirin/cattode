@@ -50,7 +50,7 @@ class Head(nn.Module):
             queries @ keys.transpose(-2, -1) * keys.shape[-1] ** -0.5
         )
         out = out.masked_fill(
-            self.tril[:tdim, :tdim].__eq__(0),  # pyright: ignore
+            pth.eq(self.tril[:tdim, :tdim], 0),  # pyright: ignore[reportIndexIssue]
             float("-inf"),
         )
         out = F.softmax(out, dim=-1)
@@ -151,7 +151,7 @@ class GPTLanguageModel(BaseLanguageModel):
 
     def forward(
         self, index: pth.Tensor, targets: Optional[pth.Tensor] = None
-    ) -> Tuple[pth.Tensor, pth.Tensor]:
+    ) -> Tuple[pth.Tensor, Optional[pth.Tensor]]:
         bdim, tdim = index.shape
 
         token_embed = self._token_embedding_table(index)
@@ -171,7 +171,7 @@ class GPTLanguageModel(BaseLanguageModel):
             targets = targets.view(bdim * tdim)
             loss = F.cross_entropy(logits, targets)
 
-        return (logits, loss)  # pyright: ignore
+        return (logits, loss)
 
     def generate(self, index: pth.Tensor, max_new_tokens: int) -> pth.Tensor:
         config = getattr(self, "config")
