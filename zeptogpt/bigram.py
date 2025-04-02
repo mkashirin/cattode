@@ -8,14 +8,14 @@ from torch.nn import functional as F
 from .base import *
 
 
-@dataclass
+@dataclass(kw_only=True)
 class BigramModelCofing:
-    batch_size: int = 32
-    block_size: int = 8
-    max_iter: int = 30000
-    eval_interval: int = 500
-    lr: float = 0.1
-    eval_iter: int = 200
+    batch_size: int
+    block_size: int
+    max_iter: int
+    eval_interval: int
+    lr: float
+    eval_iter: int
 
 
 class BigramLanguageModel(BaseLanguageModel):

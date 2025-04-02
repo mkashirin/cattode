@@ -1,25 +1,25 @@
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-import torch as th
-import torch.nn as nn
+import torch as pth
+from torch import nn
 from torch.nn import functional as F
 
 from .base import *
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GPTModelConfig:
-    batch_size: int = 64
-    block_size: int = 256
-    max_iter: int = 5000
-    eval_interval: int = 500
-    lr: float = 3e-2
-    eval_iter: int = 200
-    n_embed: int = 384
-    n_heads: int = 6
-    n_layers: int = 6
-    dr: float = 0.2
+    batch_size: int
+    block_size: int
+    max_iter: int
+    eval_interval: int
+    lr: float
+    eval_iter: int
+    n_embed: int
+    n_heads: int
+    n_layers: int
+    dr: float
 
 
 class Head(nn.Module):
@@ -33,18 +33,20 @@ class Head(nn.Module):
         **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.register_buffer("tril", th.tril(th.ones(block_size, block_size)))
+        self.register_buffer(
+            "tril", pth.tril(pth.ones(block_size, block_size))
+        )
 
         self.keys = nn.Linear(n_embed, head_size, bias=False)
         self.queries = nn.Linear(n_embed, head_size, bias=False)
         self.values = nn.Linear(n_embed, head_size, bias=False)
         self.dropout = nn.Dropout(dr)
 
-    def forward(self, x: th.Tensor) -> th.Tensor:
+    def forward(self, x: pth.Tensor) -> pth.Tensor:
         _, tdim, _ = x.shape
-        keys: th.Tensor = self.keys(x)
-        queries: th.Tensor = self.queries(x)
-        out: th.Tensor = (
+        keys: pth.Tensor = self.keys(x)
+        queries: pth.Tensor = self.queries(x)
+        out: pth.Tensor = (
             queries @ keys.transpose(-2, -1) * keys.shape[-1] ** -0.5
         )
         # fmt: off
@@ -76,8 +78,8 @@ class MultiHeadAttention(nn.Module):
         self.proj = nn.Linear(n_heads * head_size, n_embed)
         self.dropout = nn.Dropout(dr)
 
-    def forward(self, x: th.Tensor) -> th.Tensor:
-        out = th.cat([head(x) for head in self.heads], dim=-1)
+    def forward(self, x: pth.Tensor) -> pth.Tensor:
+        out = pth.cat([head(x) for head in self.heads], dim=-1)
         return self.dropout(self.proj(out))
 
 
@@ -91,7 +93,7 @@ class FeedForward(nn.Module):
             nn.Dropout(dr),
         )
 
-    def forward(self, x) -> th.Tensor:
+    def forward(self, x) -> pth.Tensor:
         return self.inner(x)
 
 
@@ -114,14 +116,16 @@ class Block(nn.Module):
         self.ln0 = nn.LayerNorm(n_embed)
         self.ln1 = nn.LayerNorm(n_embed)
 
-    def forward(self, x: th.Tensor) -> th.Tensor:
+    def forward(self, x: pth.Tensor) -> pth.Tensor:
         x = x + self.sa(self.ln0(x))
         return x + self.ff(self.ln1(x))
 
 
 class GPTLanguageModel(BaseLanguageModel):
-    def __init__(self, config: GPTModelConfig, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self, file_path: str, config: GPTModelConfig, *args, **kwargs
+    ) -> None:
+        super().__init__(file_path, *args, **kwargs)
         setattr(self, "config", config)
 
         self._token_embedding_table = nn.Embedding(
@@ -147,15 +151,15 @@ class GPTLanguageModel(BaseLanguageModel):
         self.apply(self._init_weights)
 
     def forward(
-        self, index: th.Tensor, targets: Optional[th.Tensor] = None
-    ) -> Tuple[th.Tensor, th.Tensor]:
+        self, index: pth.Tensor, targets: Optional[pth.Tensor] = None
+    ) -> Tuple[pth.Tensor, pth.Tensor]:
         bdim, tdim = index.shape
 
         token_embed = self._token_embedding_table(index)
         pos_embed = self._position_embedding_table(
-            th.arange(tdim, device=DEVICE)
+            pth.arange(tdim, device=DEVICE)
         )
-        x: th.Tensor = token_embed + pos_embed
+        x: pth.Tensor = token_embed + pos_embed
         x = self.blocks(x)
         x = self.fln(x)
         logits = self.lmh(x)
@@ -170,7 +174,7 @@ class GPTLanguageModel(BaseLanguageModel):
 
         return (logits, loss)  # pyright: ignore
 
-    def generate(self, index: th.Tensor, max_new_tokens: int) -> th.Tensor:
+    def generate(self, index: pth.Tensor, max_new_tokens: int) -> pth.Tensor:
         config = getattr(self, "config")
         for _ in range(max_new_tokens):
             index_cond = index[:, -config.block_size :]
@@ -178,8 +182,8 @@ class GPTLanguageModel(BaseLanguageModel):
             logits, _ = self(index)
             logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
-            next_i = th.multinomial(probs, num_samples=1)
-            index = th.cat([index, next_i], dim=1)
+            next_i = pth.multinomial(probs, num_samples=1)
+            index = pth.cat([index, next_i], dim=1)
         return index
 
     def _init_weights(self, module: nn.Module) -> None:

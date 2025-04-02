@@ -1,11 +1,12 @@
 from typing import Dict, List, Literal, Tuple
 
-import torch as th
+import torch as pth
 from torch import nn
 
 
 DataSplit = Literal["train", "valid"]
-DEVICE = "cuda" if th.cuda.is_available() else "cpu"
+
+DEVICE = "cuda" if pth.cuda.is_available() else "cpu"
 
 
 class BaseLanguageModel(nn.Module):
@@ -23,7 +24,7 @@ class BaseLanguageModel(nn.Module):
         self._int2str_mapping = {
             index: char for index, char in enumerate(self._chars)
         }
-        self._data = th.tensor(self._encode(text), dtype=th.long)
+        self._data = pth.tensor(self._encode(text), dtype=pth.long)
 
         self.train_size = int(0.9 * len(self._data))
         self.train_data = self._data[: self.train_size]
@@ -33,7 +34,7 @@ class BaseLanguageModel(nn.Module):
         mapped = (self._int2str_mapping[index] for index in input)
         return "".join(mapped)
 
-    def batch(self, split: DataSplit) -> Tuple[th.Tensor, th.Tensor]:
+    def batch(self, split: DataSplit) -> Tuple[pth.Tensor, pth.Tensor]:
         config = getattr(self, "config")
         data = None
         if split == "train":
@@ -41,29 +42,26 @@ class BaseLanguageModel(nn.Module):
         else:
             data = self.valid_data
         ixs = (config.batch_size,)
-        index_x = th.randint(len(data) - config.block_size, ixs)
-        x, y = (
-            th.stack([data[ix : ix + config.block_size] for ix in index_x]).to(
-                DEVICE
-            ),
-            th.stack(
-                [data[ix + 1 : ix + config.block_size + 1] for ix in index_x]
-            ).to(DEVICE),
+        index_x = pth.randint(len(data) - config.block_size, ixs)
+        x_data, y_data = (
+            [data[ix : ix + config.block_size] for ix in index_x],
+            [data[ix + 1 : ix + config.block_size + 1] for ix in index_x],
         )
+        x, y = (pth.stack(x_data).to(DEVICE), pth.stack(y_data).to(DEVICE))
         return (x, y)
 
     def _encode(self, input: str) -> List[int]:
         return [self._str2int_mapping[char] for char in input]
 
 
-@th.no_grad()
+@pth.no_grad()
 def estimate_loss(
     model: BaseLanguageModel, eval_iter: int
-) -> Dict[DataSplit, th.Tensor]:
-    out: Dict[DataSplit, th.Tensor] = dict()
+) -> Dict[DataSplit, pth.Tensor]:
+    out: Dict[DataSplit, pth.Tensor] = dict()
     model.eval()
     for split in ("train", "valid"):
-        losses = th.zeros(eval_iter)
+        losses = pth.zeros(eval_iter)
         for ei in range(eval_iter):
             x, y = model.batch(split)
             _, loss = model(x, y)

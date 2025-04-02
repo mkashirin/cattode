@@ -1,15 +1,31 @@
-import torch as th
+import torch as pth
 
-from zeptogpt.gpt import *
+from zeptogpt import DEVICE, estimate_loss, GPTModelConfig, GPTLanguageModel
+
+
+FILE_PATH = "examples/war_and_peace.txt.utf-8"
+
+pth.manual_seed(1337)
 
 
 def main() -> None:
-    gmc = GPTModelConfig()
-    gpt = GPTLanguageModel(gmc).to(DEVICE)
-    optimizer = th.optim.AdamW(gpt.parameters(), lr=gmc.lr)
+    gmc = GPTModelConfig(
+        batch_size=64,
+        block_size=256,
+        max_iter=5000,
+        eval_interval=500,
+        lr=3e-4,
+        eval_iter=200,
+        n_embed=384,
+        n_heads=6,
+        n_layers=6,
+        dr=0.2,
+    )
+    gpt = GPTLanguageModel(FILE_PATH, gmc).to(DEVICE)
+    optimizer = pth.optim.AdamW(gpt.parameters(), lr=gmc.lr)
 
     for it in range(gmc.max_iter):
-        if it % gmc.eval_interval == 0 or iter == gmc.max_iter - 1:
+        if it % gmc.eval_interval == 0 or it == gmc.max_iter - 1:
             losses = estimate_loss(gpt, gmc.eval_iter)
             print(f"""Trainer (step {it}):
     train loss: {losses["train"]}, valid loss: {losses["valid"]}""")
@@ -20,8 +36,12 @@ def main() -> None:
             loss.backward()
             optimizer.step()
 
-    context = th.zeros([1, 1], dtype=th.long, device=DEVICE)
-    decoded = gpt.decode(gpt.generate(context, max_new_tokens=500)[0].tolist())
+    pth.save(gpt.state_dict(), "gpt.pth")
+
+    context = pth.zeros([1, 1], dtype=pth.long, device=DEVICE)
+    decoded = gpt.decode(
+        gpt.generate(context, max_new_tokens=1000)[0].tolist()
+    )
     print(decoded)
 
 
