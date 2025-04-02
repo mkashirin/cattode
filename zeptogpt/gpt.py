@@ -49,11 +49,10 @@ class Head(nn.Module):
         out: pth.Tensor = (
             queries @ keys.transpose(-2, -1) * keys.shape[-1] ** -0.5
         )
-        # fmt: off
         out = out.masked_fill(
-            self.tril[:tdim, :tdim].__eq__(0), float("-inf")  # pyright: ignore
+            self.tril[:tdim, :tdim].__eq__(0),  # pyright: ignore
+            float("-inf"),
         )
-        # fmt: on
         out = F.softmax(out, dim=-1)
         out = self.dropout(out)
         values = self.values(x)
