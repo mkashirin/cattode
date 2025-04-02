@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import torch as pth
-from torch import nn
+from torch import nn, Tensor
 from torch.nn import functional as F
 
 from .base import *
@@ -42,17 +42,16 @@ class Head(nn.Module):
         self.values = nn.Linear(n_embed, head_size, bias=False)
         self.dropout = nn.Dropout(dr)
 
-    def forward(self, x: pth.Tensor) -> pth.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         _, tdim, _ = x.shape
-        keys: pth.Tensor = self.keys(x)
-        queries: pth.Tensor = self.queries(x)
-        out: pth.Tensor = (
-            queries @ keys.transpose(-2, -1) * keys.shape[-1] ** -0.5
-        )
+        keys: Tensor = self.keys(x)
+        queries: Tensor = self.queries(x)
+        out: Tensor = queries @ keys.transpose(-2, -1) * keys.shape[-1] ** -0.5
+        # fmt: off
         out = out.masked_fill(
-            pth.eq(self.tril[:tdim, :tdim], 0),  # pyright: ignore[reportIndexIssue]
-            float("-inf"),
+            self.tril[:tdim, :tdim] == 0, float("-inf")  # pyright: ignore[reportIndexIssue]
         )
+        # fmt: on
         out = F.softmax(out, dim=-1)
         out = self.dropout(out)
         values = self.values(x)
@@ -77,7 +76,7 @@ class MultiHeadAttention(nn.Module):
         self.proj = nn.Linear(n_heads * head_size, n_embed)
         self.dropout = nn.Dropout(dr)
 
-    def forward(self, x: pth.Tensor) -> pth.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         out = pth.cat([head(x) for head in self.heads], dim=-1)
         return self.dropout(self.proj(out))
 
@@ -92,7 +91,7 @@ class FeedForward(nn.Module):
             nn.Dropout(dr),
         )
 
-    def forward(self, x) -> pth.Tensor:
+    def forward(self, x) -> Tensor:
         return self.inner(x)
 
 
@@ -115,7 +114,7 @@ class Block(nn.Module):
         self.ln0 = nn.LayerNorm(n_embed)
         self.ln1 = nn.LayerNorm(n_embed)
 
-    def forward(self, x: pth.Tensor) -> pth.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         x = x + self.sa(self.ln0(x))
         return x + self.ff(self.ln1(x))
 
@@ -150,15 +149,15 @@ class GPTLanguageModel(BaseLanguageModel):
         self.apply(self._init_weights)
 
     def forward(
-        self, index: pth.Tensor, targets: Optional[pth.Tensor] = None
-    ) -> Tuple[pth.Tensor, Optional[pth.Tensor]]:
+        self, index: Tensor, targets: Optional[Tensor] = None
+    ) -> Tuple[Tensor, Optional[Tensor]]:
         bdim, tdim = index.shape
 
         token_embed = self._token_embedding_table(index)
         pos_embed = self._position_embedding_table(
             pth.arange(tdim, device=DEVICE)
         )
-        x: pth.Tensor = token_embed + pos_embed
+        x: Tensor = token_embed + pos_embed
         x = self.blocks(x)
         x = self.fln(x)
         logits = self.lmh(x)
@@ -173,7 +172,7 @@ class GPTLanguageModel(BaseLanguageModel):
 
         return (logits, loss)
 
-    def generate(self, index: pth.Tensor, max_new_tokens: int) -> pth.Tensor:
+    def generate(self, index: Tensor, max_new_tokens: int) -> Tensor:
         config = getattr(self, "config")
         for _ in range(max_new_tokens):
             index_cond = index[:, -config.block_size :]

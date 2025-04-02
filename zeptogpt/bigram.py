@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-import torch as th
-import torch.nn as nn
+import torch as pth
+from torch import nn, Tensor
 from torch.nn import functional as F
 
 from .base import *
@@ -30,9 +30,9 @@ class BigramLanguageModel(BaseLanguageModel):
         )
 
     def forward(
-        self, index: int, targets: Optional[th.Tensor] = None
-    ) -> Tuple[th.Tensor, Optional[th.Tensor]]:
-        logits: th.Tensor = self._token_embedding_table(index)
+        self, index: int, targets: Optional[Tensor] = None
+    ) -> Tuple[Tensor, Optional[Tensor]]:
+        logits: Tensor = self._token_embedding_table(index)
         if targets is None:
             loss = None
         else:
@@ -44,11 +44,11 @@ class BigramLanguageModel(BaseLanguageModel):
             loss = F.cross_entropy(logits, targets)
         return (logits, loss)
 
-    def generate(self, index: th.Tensor, max_new_tokens: int) -> th.Tensor:
+    def generate(self, index: Tensor, max_new_tokens: int) -> Tensor:
         for _ in range(max_new_tokens):
             logits, _ = self(index)
             logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
-            next_i = th.multinomial(probs, num_samples=1)
-            index = th.cat([index, next_i], dim=1)
+            next_i = pth.multinomial(probs, num_samples=1)
+            index = pth.cat([index, next_i], dim=1)
         return index
