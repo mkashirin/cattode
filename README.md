@@ -1,6 +1,6 @@
 # ZeptoGPT
 
-This repo is my implementation of the Andrej Karpathy's
+This repo is my implementation of the Andrej Karpathy's nanoGPT from his
 [guide](https://www.youtube.com/watch?v=kCc8FmEb1nY) on how to build GPT from
 scratch.
 
