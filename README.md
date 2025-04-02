@@ -1,8 +1,10 @@
-# ZeptoGPT
+<h1 align="center">ZeptoGPT</h1>
 
+<p align="center">
 This repo is my implementation of Andrej Karpathy's nanoGPT from his
 [guide](https://www.youtube.com/watch?v=kCc8FmEb1nY) on how to build GPT from
 scratch.
+</p>
 
 ## Bigram
 
