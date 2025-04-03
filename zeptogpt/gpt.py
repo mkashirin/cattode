@@ -49,7 +49,7 @@ class Head(nn.Module):
         out: Tensor = queries @ keys.transpose(-2, -1) * keys.shape[-1] ** -0.5
         out = out.masked_fill(
             self.tril[:tdim, :tdim] == 0,  # pyright: ignore[reportIndexIssue]
-            float("-inf")
+            float("-inf"),
         )
         out = F.softmax(out, dim=-1)
         out = self.dropout(out)
