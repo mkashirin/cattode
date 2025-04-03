@@ -1,11 +1,12 @@
 from typing import Dict, List, Literal, Tuple
 
 import torch as pth
-from torch import nn, Tensor
+from torch import Tensor, nn
 
-DataSplit = Literal["train", "valid"]
 
 DEVICE = "cuda" if pth.cuda.is_available() else "cpu"
+
+DataSplit = Literal["train", "valid"]
 
 
 class LanguageModelBase(nn.Module):

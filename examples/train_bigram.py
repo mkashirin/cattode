@@ -22,10 +22,10 @@ def main() -> None:
     blm = BigramLanguageModel(FILE_PATH, bmc).to(DEVICE)
     optimizer = pth.optim.AdamW(blm.parameters(), lr=1e-2)
 
-    for iter in range(bmc.train_steps):
-        if iter % bmc.eval_interval == 0:
+    for step in range(bmc.train_steps):
+        if step % bmc.eval_interval == 0:
             losses = estimate_loss(blm, bmc.eval_iter)
-            print(f"""Trainer (step {iter}):
+            print(f"""Trainer (step {step}):
     train loss: {losses["train"]}, valid loss: {losses["valid"]}""")
 
             x_batch, y_batch = blm.batch("train")
