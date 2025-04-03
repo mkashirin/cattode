@@ -29,6 +29,7 @@ dependencies = [
     "torch>=2.6.0",
 ]
 
+
 [dependency-groups]
 nvidia = [
     "nvidia-cublas-cu12==12.6.4.1",
