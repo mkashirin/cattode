@@ -12,20 +12,19 @@ def main() -> None:
     gmc = GPTModelConfig(
         batch_size=64,
         block_size=256,
-        max_iter=5000,
+        train_steps=100_000,
         eval_interval=500,
-        lr=3e-4,
-        eval_iter=200,
-        n_embed=384,
-        n_heads=6,
+        eval_iter=250,
+        n_embed=512,
+        n_heads=8,
         n_layers=6,
         dr=0.2,
     )
     gpt = GPTLanguageModel(FILE_PATH, gmc).to(DEVICE)
-    optimizer = pth.optim.AdamW(gpt.parameters(), lr=gmc.lr)
+    optimizer = pth.optim.AdamW(gpt.parameters(), lr=3e-4, betas=(0.9, 0.98))
 
-    for iter in range(gmc.max_iter):
-        if iter % gmc.eval_interval == 0 or iter == gmc.max_iter - 1:
+    for iter in range(gmc.train_steps):
+        if iter % gmc.eval_interval == 0 or iter == gmc.train_steps - 1:
             losses = estimate_loss(gpt, gmc.eval_iter)
             print(f"""Trainer (step {iter}):
     train loss: {losses["train"]}, valid loss: {losses["valid"]}""")

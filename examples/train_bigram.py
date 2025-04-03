@@ -15,15 +15,14 @@ def main() -> None:
     bmc = BigramModelCofing(
         batch_size=32,
         block_size=8,
-        max_iter=30000,
+        train_steps=10_000,
         eval_interval=500,
-        lr=0.1,
-        eval_iter=200,
+        eval_iter=250,
     )
     blm = BigramLanguageModel(FILE_PATH, bmc).to(DEVICE)
-    optimizer = pth.optim.AdamW(blm.parameters(), lr=bmc.lr)
+    optimizer = pth.optim.AdamW(blm.parameters(), lr=1e-2)
 
-    for iter in range(bmc.max_iter):
+    for iter in range(bmc.train_steps):
         if iter % bmc.eval_interval == 0:
             losses = estimate_loss(blm, bmc.eval_iter)
             print(f"""Trainer (step {iter}):

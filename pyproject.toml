@@ -46,6 +46,6 @@ nvidia = [
     "triton==3.2.0",
 ]
 dev = [
-    "pyright>=1.1.393",
+    "basedpyright>=1.28.4",
     "ruff>=0.8.4",
 ]

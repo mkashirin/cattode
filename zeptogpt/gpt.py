@@ -12,9 +12,8 @@ from .base import *
 class GPTModelConfig:
     batch_size: int
     block_size: int
-    max_iter: int
+    train_steps: int
     eval_interval: int
-    lr: float
     eval_iter: int
     n_embed: int
     n_heads: int
@@ -118,7 +117,7 @@ class Block(nn.Module):
         return x + self.ff(self.ln1(x))
 
 
-class GPTLanguageModel(BaseLanguageModel):
+class GPTLanguageModel(LanguageModelBase):
     def __init__(
         self, file_path: str, config: GPTModelConfig, *args, **kwargs
     ) -> None:

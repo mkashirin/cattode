@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import torch as pth
-from torch import nn, Tensor
+from torch import Tensor, nn
 from torch.nn import functional as F
 
 from .base import *
@@ -12,13 +12,12 @@ from .base import *
 class BigramModelCofing:
     batch_size: int
     block_size: int
-    max_iter: int
+    train_steps: int
     eval_interval: int
-    lr: float
     eval_iter: int
 
 
-class BigramLanguageModel(BaseLanguageModel):
+class BigramLanguageModel(LanguageModelBase):
     def __init__(
         self, file_path: str, config: BigramModelCofing, *args, **kwargs
     ) -> None:

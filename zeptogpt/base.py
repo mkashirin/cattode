@@ -1,15 +1,14 @@
 from typing import Dict, List, Literal, Tuple
 
 import torch as pth
-from torch import nn
-
+from torch import nn, Tensor
 
 DataSplit = Literal["train", "valid"]
 
 DEVICE = "cuda" if pth.cuda.is_available() else "cpu"
 
 
-class BaseLanguageModel(nn.Module):
+class LanguageModelBase(nn.Module):
     def __init__(self, file_path: str, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
@@ -34,7 +33,7 @@ class BaseLanguageModel(nn.Module):
         mapped = (self._int2str_mapping[index] for index in input)
         return "".join(mapped)
 
-    def batch(self, split: DataSplit) -> Tuple[pth.Tensor, pth.Tensor]:
+    def batch(self, split: DataSplit) -> Tuple[Tensor, Tensor]:
         config = getattr(self, "config")
         data = None
         if split == "train":
@@ -56,9 +55,9 @@ class BaseLanguageModel(nn.Module):
 
 @pth.no_grad()
 def estimate_loss(
-    model: BaseLanguageModel, eval_iter: int
-) -> Dict[DataSplit, pth.Tensor]:
-    out: Dict[DataSplit, pth.Tensor] = dict()
+    model: LanguageModelBase, eval_iter: int
+) -> Dict[DataSplit, Tensor]:
+    out: Dict[DataSplit, Tensor] = dict()
     model.eval()
     for split in ("train", "valid"):
         losses = pth.zeros(eval_iter)
