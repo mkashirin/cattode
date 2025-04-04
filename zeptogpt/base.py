@@ -15,14 +15,15 @@ basicConfig(
     filename="zeptogpt.log",
 )
 
-DataSplit = Literal["train", "valid"]
 
-
-@dataclass(kw_only=True)
+@dataclass
 class ConfigBase:
     train_steps: int
     eval_interval: int
     eval_iter: int
+
+
+DataSplit = Literal["train", "valid"]
 
 
 class LanguageModelBase(nn.Module):
