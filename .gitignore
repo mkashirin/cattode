@@ -6,3 +6,9 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Log files
+*.log
+
+# Model weights and generated text
+examples/models/

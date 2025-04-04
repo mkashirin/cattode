@@ -1,43 +1,43 @@
+import os
+
 import torch as pth
 
 from zeptogpt import (
     DEVICE,
-    estimate_loss,
+    train,
     BigramModelCofing,
     BigramLanguageModel,
 )
 
 
-FILE_PATH = "examples/war_and_peace.txt.utf-8"
+FILE_PATH = "examples/data/complete_shakespeare.txt.utf-8"
 
 
 def main() -> None:
     bmc = BigramModelCofing(
-        batch_size=32,
-        block_size=8,
-        train_steps=10_000,
+        batch_size=64,
+        block_size=32,
+        train_steps=100_000,
         eval_interval=500,
         eval_iter=250,
     )
     blm = BigramLanguageModel(FILE_PATH, bmc).to(DEVICE)
-    optimizer = pth.optim.AdamW(blm.parameters(), lr=1e-2)
+    optimizer = pth.optim.AdamW(blm.parameters(), lr=0.1)
 
-    for step in range(bmc.train_steps):
-        if step % bmc.eval_interval == 0:
-            losses = estimate_loss(blm, bmc.eval_iter)
-            print(f"""Trainer (step {step}):
-    train loss: {losses["train"]}, valid loss: {losses["valid"]}""")
+    # Train the model first.
+    train(bmc, blm, optimizer)
+    # Then save the weights to a file.
+    model_dir = "examples/models"
+    if model_dir not in os.listdir():
+        os.mkdir(model_dir)
+    pth.save(blm.state_dict(), f"{model_dir}/bigram_shakespeare.pth")
 
-            x_batch, y_batch = blm.batch("train")
-            _, loss = blm(x_batch, y_batch)
-            optimizer.zero_grad(set_to_none=True)
-            loss.backward()
-            optimizer.step()
-    pth.save(blm.state_dict(), "bigram.pth")
-
+    # Then create a buffer for inference and save the output to a file.
     context = pth.zeros([1, 1], dtype=pth.long, device=DEVICE)
-    decoded = blm.decode(blm.generate(context, max_new_tokens=500)[0].tolist())
-    print(decoded)
+    generated = blm.generate(context, max_new_tokens=1000).tolist()
+    decoded = blm.decode(generated)
+    with open(f"{model_dir}/bigram_inference.txt", "w") as file:
+        file.writelines(decoded)
 
 
 if __name__ == "__main__":

@@ -1,3 +1,6 @@
+from abc import abstractmethod
+from dataclasses import dataclass
+from logging import INFO, basicConfig, info
 from typing import Dict, List, Literal, Tuple
 
 import torch as pth
@@ -6,7 +9,20 @@ from torch import Tensor, nn
 
 DEVICE = "cuda" if pth.cuda.is_available() else "cpu"
 
+basicConfig(
+    level=INFO,
+    format="(%(asctime)s) %(message)s",
+    filename="zeptogpt.log",
+)
+
 DataSplit = Literal["train", "valid"]
+
+
+@dataclass(kw_only=True)
+class ConfigBase:
+    train_steps: int
+    eval_interval: int
+    eval_iter: int
 
 
 class LanguageModelBase(nn.Module):
@@ -50,6 +66,12 @@ class LanguageModelBase(nn.Module):
         x, y = (pth.stack(x_data).to(DEVICE), pth.stack(y_data).to(DEVICE))
         return (x, y)
 
+    @abstractmethod
+    def generate(self, index: Tensor, max_new_tokens: int) -> Tensor:
+        raise NotImplementedError(
+            "Every language model has to have ``.generate()`` method"
+        )
+
     def _encode(self, input: str) -> List[int]:
         return [self._str2int_mapping[char] for char in input]
 
@@ -69,3 +91,24 @@ def estimate_loss(
         out[split] = losses.mean()
     model.train()
     return out
+
+
+def train(
+    config: ConfigBase,
+    model: LanguageModelBase,
+    optimizer: pth.optim.Optimizer,
+) -> None:
+    for step in range(1, config.train_steps):
+        if step % config.eval_interval == 0 or step == config.train_steps - 1:
+            losses = estimate_loss(model, config.eval_iter)
+            info(f"""Loss at {step}:
+    train: {losses["train"]}
+    valid: {losses["valid"]}""")
+
+            x_batch, y_batch = model.batch("train")
+            _, loss = model(x_batch, y_batch)
+
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            optimizer.step()
+    info("Training complete!")

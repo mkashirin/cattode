@@ -5,16 +5,13 @@ import torch as pth
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from .base import LanguageModelBase
+from .base import LanguageModelBase, ConfigBase
 
 
 @dataclass(kw_only=True)
-class BigramModelCofing:
+class BigramModelCofing(ConfigBase):
     batch_size: int
     block_size: int
-    train_steps: int
-    eval_interval: int
-    eval_iter: int
 
 
 class BigramLanguageModel(LanguageModelBase):
@@ -50,4 +47,4 @@ class BigramLanguageModel(LanguageModelBase):
             probs = F.softmax(logits, dim=-1)
             next_i = pth.multinomial(probs, num_samples=1)
             index = pth.cat([index, next_i], dim=1)
-        return index
+        return index[0]

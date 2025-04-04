@@ -1,6 +1,7 @@
+import os
 import torch as pth
 
-from zeptogpt import DEVICE, estimate_loss, GPTModelConfig, GPTLanguageModel
+from zeptogpt import DEVICE, train, GPTModelConfig, GPTLanguageModel
 
 
 FILE_PATH = "examples/war_and_peace.txt.utf-8"
@@ -23,25 +24,20 @@ def main() -> None:
     gpt = GPTLanguageModel(FILE_PATH, gmc).to(DEVICE)
     optimizer = pth.optim.AdamW(gpt.parameters(), lr=3e-4, betas=(0.9, 0.98))
 
-    for step in range(gmc.train_steps):
-        if step % gmc.eval_interval == 0 or step == gmc.train_steps - 1:
-            losses = estimate_loss(gpt, gmc.eval_iter)
-            print(f"""Trainer (step {step}):
-    train loss: {losses["train"]}, valid loss: {losses["valid"]}""")
+    # Train the model first.
+    train(gmc, gpt, optimizer)
+    # Then save the weights to a file.
+    model_dir = "examples/models"
+    if model_dir not in os.listdir():
+        os.mkdir(model_dir)
+    pth.save(gpt.state_dict(), f"{model_dir}/gpt_wnp.pth")
 
-            x_batch, y_batch = gpt.batch("train")
-            _, loss = gpt(x_batch, y_batch)
-            optimizer.zero_grad(set_to_none=True)
-            loss.backward()
-            optimizer.step()
-
-    pth.save(gpt.state_dict(), "gpt.pth")
-
+    # Then create a buffer for inference and save the output to a file.
     context = pth.zeros([1, 1], dtype=pth.long, device=DEVICE)
-    decoded = gpt.decode(
-        gpt.generate(context, max_new_tokens=1000)[0].tolist()
-    )
-    print(decoded)
+    generated = gpt.generate(context, max_new_tokens=1000).tolist()
+    decoded = gpt.decode(generated)
+    with open(f"{model_dir}/gpt_inference.txt", "w") as file:
+        file.writelines(decoded)
 
 
 if __name__ == "__main__":
