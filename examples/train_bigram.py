@@ -12,6 +12,8 @@ from zeptogpt import (
 
 FILE_PATH = "examples/data/complete_shakespeare.txt"
 
+pth.manual_seed(1337)
+
 
 def main() -> None:
     bmc = BigramModelCofing(batch_size=64, block_size=32)
