@@ -81,14 +81,17 @@ def estimate_loss(
     return out
 
 
-def train(
-    config: Any,
+def train_language_model(
     model: LanguageModelBase,
     optimizer: pth.optim.Optimizer,
+    *,
+    train_steps: int,
+    eval_interval: int,
+    eval_iter: int,
 ) -> None:
-    for step in range(1, config.train_steps + 1):
-        if step % config.eval_interval == 0 or step == config.train_steps:
-            losses = estimate_loss(model, config.eval_iter)
+    for step in range(1, train_steps + 1):
+        if step % eval_interval == 0 or step == train_steps:
+            losses = estimate_loss(model, eval_iter)
             logging.info(f"""Loss at step {step}:
     train: {losses["train"]}
     valid: {losses["valid"]}""")

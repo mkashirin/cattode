@@ -14,9 +14,6 @@ from .base import DEVICE, LanguageModelBase
 class GPTModelConfig:
     batch_size: int
     block_size: int
-    train_steps: int
-    eval_interval: int
-    eval_iter: int
     n_embed: int
     n_heads: int
     n_layers: int

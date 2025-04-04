@@ -12,9 +12,6 @@ from .base import LanguageModelBase
 class BigramModelCofing:
     batch_size: int
     block_size: int
-    train_steps: int
-    eval_interval: int
-    eval_iter: int
 
 
 class BigramLanguageModel(LanguageModelBase):

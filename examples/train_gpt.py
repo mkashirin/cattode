@@ -2,7 +2,12 @@ import os
 
 import torch as pth
 
-from zeptogpt import DEVICE, train, GPTModelConfig, GPTLanguageModel
+from zeptogpt import (
+    DEVICE,
+    train_language_model,
+    GPTModelConfig,
+    GPTLanguageModel,
+)
 
 
 FILE_PATH = "examples/war_and_peace.txt"
@@ -14,9 +19,6 @@ def main() -> None:
     gmc = GPTModelConfig(
         batch_size=64,
         block_size=256,
-        train_steps=100_000,
-        eval_interval=500,
-        eval_iter=250,
         n_embed=512,
         n_heads=8,
         n_layers=6,
@@ -26,7 +28,13 @@ def main() -> None:
     optimizer = pth.optim.AdamW(gpt.parameters(), lr=3e-4, betas=(0.9, 0.98))
 
     # Train the model first.
-    train(gmc, gpt, optimizer)
+    train_language_model(
+        gpt,
+        optimizer,
+        train_steps=100_000,
+        eval_interval=500,
+        eval_iter=250,
+    )
     # Then save the weights to a file.
     model_dir = "examples/models"
     if model_dir not in os.listdir():
