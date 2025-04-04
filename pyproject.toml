@@ -18,7 +18,7 @@ torchvision = { index = "pytorch-cu126" }
 [project]
 name = "zeptogpt"
 version = "0.1.0"
-description = "Inspired by Andrej Karpathy's nanoGPT lecture."
+description = "Very simple trainsformer. Inspired by Andrej Karpathy's guide."
 readme = "README.md"
 authors = [
     { name = "Michael Kashirin", email = "hotmail.mkashirin@gmail.com" }
