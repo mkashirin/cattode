@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 
 import torch as pth
 from torch import Tensor, nn
-from torch.nn import functional as F
+from torch.nn import init, functional as F
 
 from ._config import DEVICE
 from .base import LanguageModelBase
@@ -181,8 +181,8 @@ class GPTLanguageModel(LanguageModelBase):
 
     def _init_weights(self, module: nn.Module) -> None:
         if isinstance(module, nn.Linear):
-            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            init.normal_(module.weight, mean=0.0, std=0.02)
             if module.bias is not None:
-                nn.init.zeros_(module.bias)
+                init.zeros_(module.bias)
         elif isinstance(module, nn.Embedding):
-            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            init.normal_(module.weight, mean=0.0, std=0.02)
