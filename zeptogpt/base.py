@@ -89,7 +89,7 @@ def train(
     for step in range(1, config.train_steps + 1):
         if step % config.eval_interval == 0 or step == config.train_steps:
             losses = estimate_loss(model, config.eval_iter)
-            logging.info(f"""Loss at {step}:
+            logging.info(f"""Loss at step {step}:
     train: {losses["train"]}
     valid: {losses["valid"]}""")
 
