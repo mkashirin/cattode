@@ -102,16 +102,16 @@ class Block(nn.Module):
     ) -> None:
         super().__init__(*args, **kwargs)
         head_size = n_embed // n_heads
-        self.sa = MultiHeadAttention(
+        self.self_attention = MultiHeadAttention(
             n_heads, n_embed, head_size, block_size, dr
         )
         self.ff = FeedForward(n_embed, dr)
-        self.ln0 = nn.LayerNorm(n_embed)
-        self.ln1 = nn.LayerNorm(n_embed)
+        self.sa_layer_norm = nn.LayerNorm(n_embed)
+        self.ff_layer_norm = nn.LayerNorm(n_embed)
 
     def forward(self, x: Tensor) -> Tensor:
-        x = x + self.sa(self.ln0(x))
-        return x + self.ff(self.ln1(x))
+        x = x + self.self_attention(self.sa_layer_norm(x))
+        return x + self.ff(self.ff_layer_norm(x))
 
 
 class GPTLanguageModel(LanguageModelBase):
