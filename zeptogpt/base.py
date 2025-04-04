@@ -99,8 +99,8 @@ def train(
     model: LanguageModelBase,
     optimizer: pth.optim.Optimizer,
 ) -> None:
-    for step in range(1, config.train_steps):
-        if step % config.eval_interval == 0 or step == config.train_steps - 1:
+    for step in range(1, config.train_steps + 1):
+        if step % config.eval_interval == 0 or step == config.train_steps:
             losses = estimate_loss(model, config.eval_iter)
             info(f"""Loss at {step}:
     train: {losses["train"]}
