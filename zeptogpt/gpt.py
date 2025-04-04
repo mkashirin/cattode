@@ -7,7 +7,8 @@ import torch as pth
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from .base import DEVICE, LanguageModelBase
+from ._config import DEVICE
+from .base import LanguageModelBase
 
 
 @dataclass(kw_only=True)
