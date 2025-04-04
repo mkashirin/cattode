@@ -7,13 +7,16 @@ import torch as pth
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from .base import DEVICE, LanguageModelBase, ConfigBase
+from .base import DEVICE, LanguageModelBase
 
 
 @dataclass(kw_only=True)
-class GPTModelConfig(ConfigBase):
+class GPTModelConfig:
     batch_size: int
     block_size: int
+    train_steps: int
+    eval_interval: int
+    eval_iter: int
     n_embed: int
     n_heads: int
     n_layers: int

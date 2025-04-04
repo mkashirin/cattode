@@ -32,10 +32,12 @@ def main() -> None:
         os.mkdir(model_dir)
     pth.save(blm.state_dict(), f"{model_dir}/bigram_shakespeare.pth")
 
-    # Then create a buffer for inference and save the output to a file.
+    # Then create a(n) (empty) context for inference.
     context = pth.zeros([1, 1], dtype=pth.long, device=DEVICE)
+    # Generate text.
     generated = blm.generate(context, max_new_tokens=1000).tolist()
     decoded = blm.decode(generated)
+    # Save the output to a file.
     with open(f"{model_dir}/bigram_inference.txt", "w") as file:
         file.writelines(decoded)
 

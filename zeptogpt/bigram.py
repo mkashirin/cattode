@@ -5,13 +5,16 @@ import torch as pth
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from .base import LanguageModelBase, ConfigBase
+from .base import LanguageModelBase
 
 
 @dataclass(kw_only=True)
-class BigramModelCofing(ConfigBase):
+class BigramModelCofing:
     batch_size: int
     block_size: int
+    train_steps: int
+    eval_interval: int
+    eval_iter: int
 
 
 class BigramLanguageModel(LanguageModelBase):
@@ -40,11 +43,11 @@ class BigramLanguageModel(LanguageModelBase):
             loss = F.cross_entropy(logits, targets)
         return (logits, loss)
 
-    def generate(self, index: Tensor, max_new_tokens: int) -> Tensor:
+    def generate(self, context: Tensor, max_new_tokens: int) -> Tensor:
         for _ in range(max_new_tokens):
-            logits, _ = self(index)
+            logits, _ = self(context)
             logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
             next_i = pth.multinomial(probs, num_samples=1)
-            index = pth.cat([index, next_i], dim=1)
-        return index[0]
+            context = pth.cat([context, next_i], dim=1)
+        return context[0]

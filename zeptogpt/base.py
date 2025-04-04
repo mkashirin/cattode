@@ -1,26 +1,11 @@
+import logging
 from abc import abstractmethod
-from dataclasses import dataclass
-from logging import INFO, basicConfig, info
-from typing import Dict, List, Literal, Tuple
+from typing import Any, Dict, List, Literal, Tuple
 
 import torch as pth
 from torch import Tensor, nn
 
-
-DEVICE = "cuda" if pth.cuda.is_available() else "cpu"
-
-basicConfig(
-    level=INFO,
-    format="(%(asctime)s) %(message)s",
-    filename="zeptogpt.log",
-)
-
-
-@dataclass
-class ConfigBase:
-    train_steps: int
-    eval_interval: int
-    eval_iter: int
+from ._config import DEVICE
 
 
 DataSplit = Literal["train", "valid"]
@@ -53,22 +38,24 @@ class LanguageModelBase(nn.Module):
 
     def batch(self, split: DataSplit) -> Tuple[Tensor, Tensor]:
         config = getattr(self, "config")
+
         data = None
         if split == "train":
             data = self.train_data
         else:
             data = self.valid_data
-        ixs = (config.batch_size,)
-        index_x = pth.randint(len(data) - config.block_size, ixs)
+        indicies = pth.randint(
+            len(data) - config.block_size, (config.batch_size,)
+        )
         x_data, y_data = (
-            [data[ix : ix + config.block_size] for ix in index_x],
-            [data[ix + 1 : ix + config.block_size + 1] for ix in index_x],
+            [data[xi : xi + config.block_size] for xi in indicies],
+            [data[yi + 1 : yi + config.block_size + 1] for yi in indicies],
         )
         x, y = (pth.stack(x_data).to(DEVICE), pth.stack(y_data).to(DEVICE))
         return (x, y)
 
     @abstractmethod
-    def generate(self, index: Tensor, max_new_tokens: int) -> Tensor:
+    def generate(self, contxt: Tensor, max_new_tokens: int) -> Tensor:
         raise NotImplementedError(
             "Every language model has to have ``.generate()`` method"
         )
@@ -95,14 +82,14 @@ def estimate_loss(
 
 
 def train(
-    config: ConfigBase,
+    config: Any,
     model: LanguageModelBase,
     optimizer: pth.optim.Optimizer,
 ) -> None:
     for step in range(1, config.train_steps + 1):
         if step % config.eval_interval == 0 or step == config.train_steps:
             losses = estimate_loss(model, config.eval_iter)
-            info(f"""Loss at {step}:
+            logging.info(f"""Loss at {step}:
     train: {losses["train"]}
     valid: {losses["valid"]}""")
 
@@ -112,4 +99,4 @@ def train(
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
-    info("Training complete!")
+    logging.info("Training complete!")
