@@ -4,7 +4,7 @@ import torch as pth
 from zeptogpt import DEVICE, train, GPTModelConfig, GPTLanguageModel
 
 
-FILE_PATH = "examples/war_and_peace.txt.utf-8"
+FILE_PATH = "examples/war_and_peace.txt"
 
 pth.manual_seed(1337)
 

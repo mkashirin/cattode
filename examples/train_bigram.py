@@ -10,7 +10,7 @@ from zeptogpt import (
 )
 
 
-FILE_PATH = "examples/data/complete_shakespeare.txt.utf-8"
+FILE_PATH = "examples/data/complete_shakespeare.txt"
 
 
 def main() -> None:
