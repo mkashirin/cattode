@@ -14,18 +14,18 @@ def get_stats(
 
 def merge(ids: List[int], pair: Tuple[int, int], index: int) -> List[int]:
     new_ids = list()
-    cindex = 0
-    while cindex < len(ids):
+    icount = 0
+    while icount < len(ids):
         if (
-            ids[cindex] == pair[0]
-            and cindex < len(ids) - 1
-            and ids[cindex + 1] == pair[1]
+            ids[icount] == pair[0]
+            and icount < len(ids) - 1
+            and ids[icount + 1] == pair[1]
         ):
             new_ids.append(index)
-            cindex += 2
+            icount += 2
         else:
-            new_ids.append(ids[cindex])
-            cindex += 1
+            new_ids.append(ids[icount])
+            icount += 1
     return new_ids
 
 
@@ -56,13 +56,13 @@ class BaseTokenizer(ABC):
         self.vocab = self._build_vocab()
 
     def _build_vocab(self):
-        vocab = {index: bytes([index]) for index in range(256)}
+        vocab = {i: bytes([i]) for i in range(256)}
 
-        for (p0, p1), index in self.merges.items():
-            vocab[index] = vocab[p0] + vocab[p1]
+        for (p0, p1), i in self.merges.items():
+            vocab[i] = vocab[p0] + vocab[p1]
 
-        for special, index in self.special_tokens.items():
-            vocab[index] = special.encode("utf-8")
+        for special, i in self.special_tokens.items():
+            vocab[i] = special.encode("utf-8")
 
         return vocab
 
@@ -93,26 +93,25 @@ class BaseTokenizer(ABC):
             file.write(self.pattern + "\n")
             file.write(f"{len(self.special_tokens)}\n")
 
-            for special, index in self.special_tokens.items():
-                file.write(f"{special} {index}\n")
+            for special, i in self.special_tokens.items():
+                file.write(f"{special} {i}\n")
 
             for i0, i1 in self.merges.keys():
                 file.write(f"{i0} {i1}\n")
 
         vocab_file = path_prefix + ".zbv"
-        inverterd_merges = {index: pair for pair, index in self.merges.items()}
+        inverterd_merges = {i: pair for pair, i in self.merges.items()}
         with open(vocab_file, "w", encoding="utf-8") as file:
-            for index, token in self.vocab.items():
+            for i, token in self.vocab.items():
                 string = render_token(token)
-                if index in inverterd_merges:
-                    i0, i1 = inverterd_merges[index]
-                    s0, s1 = (
-                        render_token(self.vocab[i0]),
-                        render_token(self.vocab[i1]),
-                    )
-                    file.write(f"[{s0}][{s1}] -> [{string}] {index}\n")
+                if i in inverterd_merges:
+                    i0, i1 = inverterd_merges[i]
+                    s0 = render_token(self.vocab[i0])
+
+                    s1 = render_token(self.vocab[i1])
+                    file.write(f"[{s0}][{s1}] -> [{string}] {i}\n")
                 else:
-                    file.write(f"[{string}] {index}\n")
+                    file.write(f"[{string}] {i}\n")
 
     def load(self, encoding_file: str) -> None:
         """Load the tokenizer from the files obtained as a result of

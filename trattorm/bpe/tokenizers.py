@@ -73,7 +73,7 @@ class BPETokenizer(BaseTokenizer):
         ids = list(text_bytes)
 
         merges: Dict[Tuple[int, int], int] = dict()
-        vocab = {idx: bytes([idx]) for idx in range(256)}
+        vocab = {i: bytes([i]) for i in range(256)}
         for mn in range(n_merges):
             stats = get_stats(ids)
             pair = max(stats, key=stats.get)  # type: ignore
@@ -107,7 +107,7 @@ class BPETokenizer(BaseTokenizer):
         return self.merges.get(pair, float("inf"))
 
     def decode(self, ids: List[int]) -> str:
-        text_bytes = b"".join(self.vocab[idx] for idx in ids)
+        text_bytes = b"".join(self.vocab[i] for i in ids)
         text = text_bytes.decode("utf-8", errors="replace")
         return text
 
@@ -140,7 +140,7 @@ class RegexBPETokenizer(BPETokenizer):
         ids = [list(chunk.encode("utf-8")) for chunk in text_chunks]
 
         merges: Dict[Tuple[int, int], int] = dict()
-        vocab = {idx: bytes([idx]) for idx in range(256)}
+        vocab = {i: bytes([i]) for i in range(256)}
         for mn in range(n_merges):
             stats: Dict[Tuple[int, int], int] = dict()
             for chunk_ids in ids:
