@@ -2,23 +2,22 @@ import os
 
 import torch as pth
 
-from zeptobpe import RegexBPETokenizer
-from zeptogpt import GPTLanguageModel, GPTLMHParams, train_language_model
+from trattorm import GPTLanguageModel, GPTLMHParams, train_language_model
+from trattorm.bpe import RegexBPETokenizer
 
 
 def main() -> None:
     # Paper-scale hyperparameters:
-    # ```
-    # gmc = GPTModelConfig(
-    #     batch_size=64,
-    #     block_size=256,
-    #     n_embs=512,
-    #     n_heads=8,
-    #     n_layers=6,
-    #     dr=0.2,
-    # )
-    # ```
-    gpt_hparams = GPTLMHParams(
+    _big_gpt_hparams = GPTLMHParams(
+        batch_size=64,
+        block_size=256,
+        n_embs=512,
+        n_heads=8,
+        n_layers=6,
+        dr=0.2,
+    )
+    # My-PC-scale hyperparameters:
+    small_gpt_hparams = GPTLMHParams(
         batch_size=64,
         block_size=128,
         n_embs=256,
@@ -38,7 +37,7 @@ def main() -> None:
 
     gpt = GPTLanguageModel(
         train_corpus,
-        gpt_hparams,
+        small_gpt_hparams,
         tokenizer,
     ).to(device)
     optimizer = pth.optim.AdamW(gpt.parameters(), lr=3e-4, betas=(0.9, 0.98))

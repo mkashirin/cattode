@@ -1,5 +1,5 @@
 # Python-generated files
-*/__pycache__/
+**/__pycache__/ 
 build/
 dist/
 wheels/
@@ -8,7 +8,7 @@ wheels/
 .venv
 
 # Log files
-*.log
+examples/*.log
 
 # Model weights and generated text
 examples/weights+inference/

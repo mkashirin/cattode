@@ -1,5 +1,5 @@
 [project]
-name = "zeptogpt"
+name = "trattorm"
 version = "0.1.0"
 description = "Very simple trainsformer. Inspired by Andrej Karpathy's guide."
 readme = "README.md"
@@ -25,6 +25,7 @@ nvidia = [
     "nvidia-curand-cu12==10.3.7.77",
     "nvidia-cusolver-cu12==11.7.1.2",
     "nvidia-cusparse-cu12==12.5.4.2",
+    "nvidia-cusparselt-cu12==0.6.3",
     "nvidia-nccl-cu12==2.21.5",
     "nvidia-nvjitlink-cu12==12.6.85",
     "nvidia-nvtx-cu12==12.6.77",
@@ -40,7 +41,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
-packages = ["zeptogpt", "zeptobpe"]
+packages = ["trattorm"]
 include = ["examples"]
 
 [[tool.uv.index]]

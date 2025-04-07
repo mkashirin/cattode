@@ -7,8 +7,8 @@ from torch.nn import functional as F
 from torch.nn import init
 from torch.types import Tensor
 
-from zeptobpe.base import BaseTokenizer
-from zeptogpt.base import LanguageModelBase
+from .base import LanguageModelBase
+from .bpe.base import BaseTokenizer
 
 
 @dataclass(kw_only=True)

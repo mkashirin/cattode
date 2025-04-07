@@ -5,8 +5,8 @@ import torch as pth
 from torch import nn
 from torch.types import Device, Tensor
 
-from zeptobpe.base import BaseTokenizer
 from ._logger import get_logger
+from .bpe.base import BaseTokenizer
 
 
 class LanguageModelBase(nn.Module):

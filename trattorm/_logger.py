@@ -2,10 +2,10 @@ import logging
 
 
 def get_logger() -> logging.Logger:
-    logger = logging.getLogger("zeptobpe")
+    logger = logging.getLogger("trattorm")
     logger.setLevel(logging.INFO)
 
-    hdlr = logging.FileHandler("zeptobpe.log")
+    hdlr = logging.FileHandler("trattorm.log")
     hdlr.setLevel(logging.INFO)
     fmt = logging.Formatter("(%(asctime)s) %(message)s")
     hdlr.setFormatter(fmt)
