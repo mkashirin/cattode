@@ -1,105 +1,123 @@
-import logging
 from abc import abstractmethod
-from typing import Any, Dict, List, Literal, Tuple
+from typing import Dict, Literal, Tuple
 
 import torch as pth
-from torch import Tensor, nn
+from torch import nn
+from torch.types import Device, Tensor
 
-from ._config import DEVICE
-
-
-DataSplit = Literal["train", "valid"]
+from zeptobpe.base import BaseTokenizer
+from ._logger import get_logger
 
 
 class LanguageModelBase(nn.Module):
-    def __init__(self, file_path: str, *args, **kwargs) -> None:
+    """The base class for all ZeptoGPT language models."""
+
+    def __init__(
+        self,
+        train_corpus: str,
+        tokenizer: BaseTokenizer,
+        *args,
+        **kwargs,
+    ) -> None:
         super().__init__(*args, **kwargs)
-
-        with open(file_path, "r", encoding="utf-8") as file:
-            text = file.read()
-
-        self._chars = sorted(list(set(text)))
-        self._vocab_size = len(self._chars)
-        self._str2int_mapping = {
-            char: index for index, char in enumerate(self._chars)
-        }
-        self._int2str_mapping = {
-            index: char for index, char in enumerate(self._chars)
-        }
-        self._data = pth.tensor(self._encode(text), dtype=pth.long)
-
-        self.train_size = int(0.9 * len(self._data))
-        self.train_data = self._data[: self.train_size]
-        self.valid_data = self._data[self.train_size :]
-
-    def decode(self, input: List[int]) -> str:
-        mapped = (self._int2str_mapping[index] for index in input)
-        return "".join(mapped)
-
-    def batch(self, split: DataSplit) -> Tuple[Tensor, Tensor]:
-        config = getattr(self, "config")
-
-        data = None
-        if split == "train":
-            data = self.train_data
-        else:
-            data = self.valid_data
-        indicies = pth.randint(
-            len(data) - config.block_size, (config.batch_size,)
+        setattr(self, "tokenizer", tokenizer)
+        device: Device = "cuda" if pth.cuda.is_available() else "cpu"
+        data = pth.tensor(
+            tokenizer.encode(train_corpus), dtype=pth.long, device=device
         )
-        x_data, y_data = (
-            [data[xi : xi + config.block_size] for xi in indicies],
-            [data[yi + 1 : yi + config.block_size + 1] for yi in indicies],
+        self.register_buffer("data", data)
+
+        self.train_size = int(0.9 * len(data))
+        self.train_data = data[: self.train_size]
+
+        self.valid_data = data[self.train_size :]
+
+    def get_batches(
+        self, split: Literal["train", "valid"]
+    ) -> Tuple[Tensor, Tensor]:
+        hparams = getattr(self, "hparams")
+
+        data = self.train_data if split == "train" else self.valid_data
+        ishape = (hparams.batch_size,)
+        indicies = pth.randint(len(data) - hparams.block_size, ishape)
+        xbatches = self._get_xbatches(data, indicies)
+
+        ybatches = self._get_ybatches(data, indicies)
+        return (xbatches, ybatches)
+
+    def _get_xbatches(self, data: Tensor, indicies: Tensor) -> Tensor:
+        hparams = getattr(self, "hparams")
+
+        xbatches = tuple(
+            (data[xi : xi + hparams.block_size] for xi in indicies)
         )
-        x, y = (pth.stack(x_data).to(DEVICE), pth.stack(y_data).to(DEVICE))
-        return (x, y)
+        return pth.stack(xbatches).to(data.device)
+
+    def _get_ybatches(self, data: Tensor, indicies: Tensor) -> Tensor:
+        hparams = getattr(self, "hparams")
+
+        ybatches = tuple(
+            (data[yi + 1 : yi + hparams.block_size + 1] for yi in indicies)
+        )
+        return pth.stack(ybatches).to(data.device)
 
     @abstractmethod
+    @pth.inference_mode()
     def generate(self, contxt: Tensor, max_new_tokens: int) -> Tensor:
         raise NotImplementedError(
-            "Every language model has to have ``.generate()`` method"
+            "Every language model has to implement generative behaviour"
         )
-
-    def _encode(self, input: str) -> List[int]:
-        return [self._str2int_mapping[char] for char in input]
 
 
 @pth.no_grad()
-def estimate_loss(
-    model: LanguageModelBase, eval_iter: int
-) -> Dict[DataSplit, Tensor]:
-    out: Dict[DataSplit, Tensor] = dict()
-    model.eval()
+def compute_metrics(
+    lang_model: LanguageModelBase, eval_iter: int
+) -> Dict[Literal["train", "valid"], Tuple[Tensor, Tensor]]:
+    out: Dict[Literal["train", "valid"], Tuple[Tensor, Tensor]] = dict()
     for split in ("train", "valid"):
         losses = pth.zeros(eval_iter)
         for ei in range(eval_iter):
-            x, y = model.batch(split)
-            _, loss = model(x, y)
+            x, y = lang_model.get_batches(split)
+            _, loss = lang_model(x, y)
             losses[ei] = loss.item()
-        out[split] = losses.mean()
-    model.train()
+
+        # Perplexity computation.
+        mean_loss = losses.mean()
+        perplexity = pth.exp(mean_loss)
+        out[split] = (mean_loss, perplexity)
+
+    lang_model.train()
     return out
 
 
 def train_language_model(
-    model: LanguageModelBase,
+    lang_model: LanguageModelBase,
     optimizer: pth.optim.Optimizer,
     *,
     train_steps: int,
     eval_interval: int,
-    eval_iter: int,
+    eval_iters: int,
 ) -> None:
+    logger = get_logger()
+
     for step in range(1, train_steps + 1):
         if step % eval_interval == 0 or step == train_steps:
-            losses = estimate_loss(model, eval_iter)
-            logging.info(f"""Loss at step {step}:
-    train: {losses["train"]}
-    valid: {losses["valid"]}""")
+            metrics = compute_metrics(lang_model, eval_iters)
+            logger.info(f"""Metrics at step {step}:
+    train:
+        loss: {metrics["train"][0]}
+        perplexity: {metrics["train"][1]}
+    valid:
+        loss: {metrics["valid"][0]}
+        perplexity: {metrics["valid"][1]}""")
 
-            x_batch, y_batch = model.batch("train")
-            _, loss = model(x_batch, y_batch)
+            x_batch, y_batch = lang_model.get_batches("train")
+            _, loss = lang_model(x_batch, y_batch)
 
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
             optimizer.step()
-    logging.info("Training complete!")
+    logger.info("Training complete!")
+
+
+__all__ = ["LanguageModelBase", "compute_metrics", "train_language_model"]

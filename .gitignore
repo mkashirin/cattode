@@ -1,5 +1,5 @@
 # Python-generated files
-__pycache__/
+*/__pycache__/
 build/
 dist/
 wheels/
@@ -11,4 +11,4 @@ wheels/
 *.log
 
 # Model weights and generated text
-examples/models/
+examples/weights+inference/
