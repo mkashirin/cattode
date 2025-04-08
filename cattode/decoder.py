@@ -12,7 +12,7 @@ from .bpe.base import BaseTokenizer
 
 
 @dataclass(kw_only=True)
-class GPTLMHParams:
+class DecoderLMHParams:
     batch_size: int
     block_size: int
     n_embs: int
@@ -121,11 +121,11 @@ class Block(nn.Module):
         return x + self.ff(self.layer_norm_ff(x))
 
 
-class GPTLanguageModel(LanguageModelBase):
+class DecoderLanguageModel(LanguageModelBase):
     def __init__(
         self,
         train_corpus: str,
-        hparams: GPTLMHParams,
+        hparams: DecoderLMHParams,
         tokenizer: BaseTokenizer,
         *args,
         **kwargs,
@@ -203,10 +203,10 @@ class GPTLanguageModel(LanguageModelBase):
 
 
 __all__ = [
-    "GPTLMHParams",
+    "DecoderLMHParams",
     "Head",
     "MultiHeadAttention",
     "FeedForward",
     "Block",
-    "GPTLanguageModel",
+    "DecoderLanguageModel",
 ]

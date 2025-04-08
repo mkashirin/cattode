@@ -5,7 +5,7 @@ import torch as pth
 from torch import nn
 from torch.types import Device, Tensor
 
-from ._logger import get_logger
+from .logger import get_logger
 from .bpe.base import BaseTokenizer
 
 

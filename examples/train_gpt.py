@@ -3,8 +3,8 @@ import os
 import torch as pth
 
 from cattode import (
-    GPTLanguageModel,
-    GPTLMHParams,
+    DecoderLanguageModel,
+    DecoderLMHParams,
     RegexBPETokenizer,
     train_language_model,
 )
@@ -12,7 +12,7 @@ from cattode import (
 
 def main() -> None:
     # Paper-scale hyperparameters:
-    _big_gpt_hparams = GPTLMHParams(
+    _big_gpt_hparams = DecoderLMHParams(
         batch_size=64,
         block_size=256,
         n_embs=512,
@@ -21,7 +21,7 @@ def main() -> None:
         dr=0.2,
     )
     # My-PC-scale hyperparameters:
-    small_gpt_hparams = GPTLMHParams(
+    small_gpt_hparams = DecoderLMHParams(
         batch_size=64,
         block_size=128,
         n_embs=256,
@@ -39,7 +39,7 @@ def main() -> None:
     vocab_size = 256 * 2
     tokenizer.train(train_corpus, vocab_size=vocab_size)
 
-    gpt = GPTLanguageModel(
+    gpt = DecoderLanguageModel(
         train_corpus,
         small_gpt_hparams,
         tokenizer,

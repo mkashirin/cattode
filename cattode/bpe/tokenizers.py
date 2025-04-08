@@ -2,7 +2,7 @@ from typing import Dict, List, Literal, Optional, Tuple, Union
 
 import regex as re
 
-from .._logger import get_logger
+from ..logger import get_logger
 from .base import BaseTokenizer, merge, get_stats
 
 
