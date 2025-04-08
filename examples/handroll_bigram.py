@@ -7,8 +7,12 @@ from torch import nn
 from torch.nn import functional as F
 from torch.types import Tensor
 
-from trattorm import LanguageModelBase, train_language_model
-from trattorm.bpe import BaseTokenizer, RegexBPETokenizer
+from cattode import (
+    BaseTokenizer,
+    LanguageModelBase,
+    RegexBPETokenizer,
+    train_language_model,
+)
 
 
 @dataclass(kw_only=True)

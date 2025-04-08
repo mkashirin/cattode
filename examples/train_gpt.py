@@ -2,8 +2,12 @@ import os
 
 import torch as pth
 
-from trattorm import GPTLanguageModel, GPTLMHParams, train_language_model
-from trattorm.bpe import RegexBPETokenizer
+from cattode import (
+    GPTLanguageModel,
+    GPTLMHParams,
+    RegexBPETokenizer,
+    train_language_model,
+)
 
 
 def main() -> None:

@@ -2,7 +2,7 @@ import os
 
 import torch as pth
 
-from trattorm.bpe import BPETokenizer
+from cattode import BPETokenizer
 
 
 def main() -> None:
