@@ -1,6 +1,6 @@
 import os
 
-import torch as pth
+import torch as pt
 
 from cattode import BPETokenizer
 
@@ -30,7 +30,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    pth.manual_seed(1337)
+    pt.manual_seed(1337)
 
     TRAIN_CORPUS = "datasets/short_stories.txt"
     WPI_DIR = "weights+inference"

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-import torch as pth
+import torch as pt
 from torch import nn
 from torch.nn import functional as F
 from torch.nn import init
@@ -46,8 +46,8 @@ class Head(nn.Module):
         out: Tensor = queries @ keys.transpose(-2, -1) * scale
 
         if tdim > self.mask.shape[0]:  # type: ignore
-            self.mask = pth.tril(
-                pth.ones(tdim, tdim, device=out.device)
+            self.mask = pt.tril(
+                pt.ones(tdim, tdim, device=out.device)
             ).bool()
         out = out.masked_fill(~self.mask, float("-inf"))
 
@@ -78,7 +78,7 @@ class MultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dr)
 
     def forward(self, x: Tensor) -> Tensor:
-        out = pth.cat([head(x) for head in self.heads], dim=-1)
+        out = pt.cat([head(x) for head in self.heads], dim=-1)
         return self.dropout(self.proj(out))
 
 
@@ -170,7 +170,7 @@ class DecoderLanguageModel(LanguageModelBase):
 
         token_embs = self._token_embedding_table(input)
         pos_embs = self._pos_embedding_table(
-            pth.arange(tdim, device=input.device)
+            pt.arange(tdim, device=input.device)
         )
         out: Tensor = token_embs + pos_embs
         out = self.blocks(out)
@@ -187,7 +187,7 @@ class DecoderLanguageModel(LanguageModelBase):
 
         return (logits, loss)
 
-    @pth.inference_mode()
+    @pt.inference_mode()
     def generate(self, input: Tensor, max_new_tokens: int) -> Tensor:
         hparams = getattr(self, "hparams")
 
@@ -197,8 +197,8 @@ class DecoderLanguageModel(LanguageModelBase):
             logits, _ = self(input)
             logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
-            next_i = pth.multinomial(probs, num_samples=1)
-            input = pth.cat([input, next_i], dim=1)
+            next_i = pt.multinomial(probs, num_samples=1)
+            input = pt.cat([input, next_i], dim=1)
         return input.squeeze()
 
 

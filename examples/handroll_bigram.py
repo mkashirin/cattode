@@ -2,7 +2,7 @@ import os
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-import torch as pth
+import torch as pt
 from torch import nn
 from torch.nn import functional as F
 from torch.types import Tensor
@@ -52,21 +52,21 @@ class BigramLanguageModel(LanguageModelBase):
             loss = F.cross_entropy(logits, target)
         return (logits, loss)
 
-    @pth.inference_mode()
+    @pt.inference_mode()
     def generate(self, input: Tensor, max_new_tokens: int) -> Tensor:
         for _ in range(max_new_tokens):
             logits, _ = self(input)
             logits = logits[:, -1, :]
             probs = F.softmax(logits, dim=-1)
-            next_i = pth.multinomial(probs, num_samples=1)
-            input = pth.cat([input, next_i], dim=1)
+            next_i = pt.multinomial(probs, num_samples=1)
+            input = pt.cat([input, next_i], dim=1)
         return input.squeeze()
 
 
 def main() -> None:
     blm_hparams = BigramLMHParams(batch_size=64, block_size=32)
 
-    device = "cuda" if pth.cuda.is_available() else "cpu"
+    device = "cuda" if pt.cuda.is_available() else "cpu"
     with open(TRAIN_CORPUS, "r", encoding="utf-8") as file:
         train_corpus = file.read()
 
@@ -80,7 +80,7 @@ def main() -> None:
     # ```
 
     blm = BigramLanguageModel(train_corpus, blm_hparams, tokenizer).to(device)
-    optimizer = pth.optim.AdamW(blm.parameters(), lr=0.1)
+    optimizer = pt.optim.AdamW(blm.parameters(), lr=0.1)
 
     # After that, train the transformer.
     train_language_model(
@@ -93,10 +93,10 @@ def main() -> None:
     # Then save the weights to a file.
     if WPI_DIR not in os.listdir():
         os.mkdir(WPI_DIR)
-    pth.save(blm.state_dict(), f"{WPI_DIR}/{WEIGHTS}.pth")
+    pt.save(blm.state_dict(), f"{WPI_DIR}/{WEIGHTS}.pt")
 
     # Create a(n) (empty) context for inference.
-    context = pth.zeros([1, 1], dtype=pth.long, device=device)
+    context = pt.zeros([1, 1], dtype=pt.long, device=device)
 
     # Generate text.
     generated = blm.generate(context, max_new_tokens=1000).tolist()
@@ -107,7 +107,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    pth.manual_seed(1337)
+    pt.manual_seed(1337)
 
     TRAIN_CORPUS = "datasets/complete_shakespeare.txt"
     WPI_DIR = "weights+inference"

@@ -72,7 +72,7 @@ class BPETokenizer(BaseTokenizer):
         text_bytes = text.encode("utf-8")
         ids = list(text_bytes)
 
-        merges: Dict[Tuple[int, int], int] = dict()
+        merges: Dict[Tuple[int, int], int] = {}
         vocab = {i: bytes([i]) for i in range(256)}
         for mn in range(n_merges):
             stats = get_stats(ids)
@@ -119,8 +119,8 @@ class RegexBPETokenizer(BPETokenizer):
         setattr(self, "pattern", pattern)
 
         self.pattern_compiled = re.compile(pattern)
-        self.special_tokens: Dict[str, int] = dict()
-        self.inverse_special_tokens: Dict[int, str] = dict()
+        self.special_tokens: Dict[str, int] = {}
+        self.inverse_special_tokens: Dict[int, str] = {}
 
     def register_special_tokens(self, special_tokens: Dict[str, int]):
         setattr(self, "special_tokens", special_tokens)
@@ -139,10 +139,10 @@ class RegexBPETokenizer(BPETokenizer):
         text_chunks = re.findall(self.pattern_compiled, text)
         ids = [list(chunk.encode("utf-8")) for chunk in text_chunks]
 
-        merges: Dict[Tuple[int, int], int] = dict()
+        merges: Dict[Tuple[int, int], int] = {}
         vocab = {i: bytes([i]) for i in range(256)}
         for mn in range(n_merges):
-            stats: Dict[Tuple[int, int], int] = dict()
+            stats: Dict[Tuple[int, int], int] = {}
             for chunk_ids in ids:
                 stats = get_stats(chunk_ids, stats)
             pair = max(stats, key=stats.get)  # type: ignore
@@ -161,7 +161,7 @@ class RegexBPETokenizer(BPETokenizer):
     def encode_ordinary(self, text: str) -> List[int]:
         text_chunks: List[str] = re.findall(self.pattern_compiled, text)
 
-        ids = list()
+        ids = []
         for chunk in text_chunks:
             chunk_ids = self._encode_chunk(chunk)
             ids.extend(chunk_ids)
@@ -180,9 +180,9 @@ class RegexBPETokenizer(BPETokenizer):
             case "all":
                 special = self.special_tokens
             case "none":
-                special = dict()
+                special = {}
             case "raise":
-                special = dict()
+                special = {}
                 if not all(token not in text for token in self.special_tokens):
                     ValueError(
                         "No special tokens allowed accroding to value passed"
@@ -195,7 +195,7 @@ class RegexBPETokenizer(BPETokenizer):
         )
         special_chunks = re.split(special_pattern, text)
 
-        ids = list()
+        ids = []
         for chunk in special_chunks:
             if chunk in special:
                 ids.append(special[chunk])

@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Dict, Literal, Tuple
 
-import torch as pth
+import torch as pt
 from torch import nn
 from torch.types import Device, Tensor
 
@@ -10,7 +10,7 @@ from .bpe.base import BaseTokenizer
 
 
 class LanguageModelBase(nn.Module):
-    """The base class for all ZeptoGPT language models."""
+    """The base class for all Cattode language models."""
 
     def __init__(
         self,
@@ -21,9 +21,9 @@ class LanguageModelBase(nn.Module):
     ) -> None:
         super().__init__(*args, **kwargs)
         setattr(self, "tokenizer", tokenizer)
-        device: Device = "cuda" if pth.cuda.is_available() else "cpu"
-        data = pth.tensor(
-            tokenizer.encode(train_corpus), dtype=pth.long, device=device
+        device: Device = "cuda" if pt.cuda.is_available() else "cpu"
+        data = pt.tensor(
+            tokenizer.encode(train_corpus), dtype=pt.long, device=device
         )
         self.register_buffer("data", data)
 
@@ -39,7 +39,7 @@ class LanguageModelBase(nn.Module):
 
         data = self.train_data if split == "train" else self.valid_data
         ishape = (hparams.batch_size,)
-        indicies = pth.randint(len(data) - hparams.block_size, ishape)
+        indicies = pt.randint(len(data) - hparams.block_size, ishape)
         xbatches = self._get_xbatches(data, indicies)
 
         ybatches = self._get_ybatches(data, indicies)
@@ -51,7 +51,7 @@ class LanguageModelBase(nn.Module):
         xbatches = tuple(
             (data[xi : xi + hparams.block_size] for xi in indicies)
         )
-        return pth.stack(xbatches).to(data.device)
+        return pt.stack(xbatches).to(data.device)
 
     def _get_ybatches(self, data: Tensor, indicies: Tensor) -> Tensor:
         hparams = getattr(self, "hparams")
@@ -59,23 +59,23 @@ class LanguageModelBase(nn.Module):
         ybatches = tuple(
             (data[yi + 1 : yi + hparams.block_size + 1] for yi in indicies)
         )
-        return pth.stack(ybatches).to(data.device)
+        return pt.stack(ybatches).to(data.device)
 
     @abstractmethod
-    @pth.inference_mode()
+    @pt.inference_mode()
     def generate(self, contxt: Tensor, max_new_tokens: int) -> Tensor:
         raise NotImplementedError(
             "Every language model has to implement generative behaviour"
         )
 
 
-@pth.no_grad()
+@pt.no_grad()
 def compute_metrics(
     lang_model: LanguageModelBase, eval_iter: int
 ) -> Dict[Literal["train", "valid"], Tuple[Tensor, Tensor]]:
-    out: Dict[Literal["train", "valid"], Tuple[Tensor, Tensor]] = dict()
+    out: Dict[Literal["train", "valid"], Tuple[Tensor, Tensor]] = {}
     for split in ("train", "valid"):
-        losses = pth.zeros(eval_iter)
+        losses = pt.zeros(eval_iter)
         for ei in range(eval_iter):
             x, y = lang_model.get_batches(split)
             _, loss = lang_model(x, y)
@@ -83,7 +83,7 @@ def compute_metrics(
 
         # Perplexity computation.
         mean_loss = losses.mean()
-        perplexity = pth.exp(mean_loss)
+        perplexity = pt.exp(mean_loss)
         out[split] = (mean_loss, perplexity)
 
     lang_model.train()
@@ -92,7 +92,7 @@ def compute_metrics(
 
 def train_language_model(
     lang_model: LanguageModelBase,
-    optimizer: pth.optim.Optimizer,
+    optimizer: pt.optim.Optimizer,
     *,
     train_steps: int,
     eval_interval: int,

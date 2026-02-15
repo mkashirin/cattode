@@ -6,14 +6,14 @@ from typing import Dict, List, Optional, Tuple
 def get_stats(
     ids: List[int], counts_in: Optional[Dict[Tuple[int, int], int]] = None
 ) -> Dict[Tuple[int, int], int]:
-    counts = dict() if counts_in is None else counts_in
+    counts = {} if counts_in is None else counts_in
     for pair in zip(ids, ids[1:]):
         counts[pair] = counts.get(pair, 0) + 1
     return counts
 
 
 def merge(ids: List[int], pair: Tuple[int, int], index: int) -> List[int]:
-    new_ids = list()
+    new_ids = []
     icount = 0
     while icount < len(ids):
         if (
@@ -30,7 +30,7 @@ def merge(ids: List[int], pair: Tuple[int, int], index: int) -> List[int]:
 
 
 def replace_control_chars(string: str) -> str:
-    chars = list()
+    chars = []
     for char in string:
         if unicodedata.category(char)[0] != "C":
             chars.append(char)
@@ -50,9 +50,9 @@ class BaseTokenizer(ABC):
     def __init__(self) -> None:
         super().__init__()
 
-        self.merges: Dict[Tuple[int, int], int] = dict()
-        self.pattern = str()
-        self.special_tokens: Dict[str, int] = dict()
+        self.merges: Dict[Tuple[int, int], int] = {}
+        self.pattern = ""
+        self.special_tokens: Dict[str, int] = {}
         self.vocab = self._build_vocab()
 
     def _build_vocab(self):
@@ -120,8 +120,8 @@ class BaseTokenizer(ABC):
 
         if not encoding_file.endswith(".zbe"):
             raise RuntimeError("Wrong file extension")
-        merges: Dict[Tuple[int, int], int] = dict()
-        special_tokens: Dict[str, int] = dict()
+        merges: Dict[Tuple[int, int], int] = {}
+        special_tokens: Dict[str, int] = {}
         index = 256
         with open(encoding_file, "r", encoding="utf-8") as file:
             version = file.readline().strip()
